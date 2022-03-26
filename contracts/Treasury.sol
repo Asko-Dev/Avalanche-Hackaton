@@ -17,6 +17,7 @@ contract Treasury is AccessControl {
         address currency_address;
         bool unlocked_for_all;
         bool cancelled;
+        bool cashed_out;
         string name;
         IERC20 payout_token_address;
         uint256 payout_token_amount;
@@ -159,6 +160,7 @@ contract Treasury is AccessControl {
     function withdraw_funds(uint256 _investment) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Investment storage investment = investments[_investment];
         require(investment.funding_goal == investment.invested, "The funding goal has not been met");
+        require(!investment.cashed_out, "already cashed out");
         if (investment.currency_address != address(0)) {
             IERC20 token = IERC20(investment.currency_address);
             token.safeTransfer(msg.sender, investment.invested);
@@ -166,6 +168,7 @@ contract Treasury is AccessControl {
         else {
             payable(msg.sender).transfer(investment.invested);
         }
+        investment.cashed_out = true;
         emit FundsWithdrawn(_investment, investment.invested);
     }
 
@@ -202,9 +205,9 @@ contract Treasury is AccessControl {
      * Note: Ideally only after this method gets triggered with a fixed amount of tokens we would allow admins
      to withdraw funds.
     */
-    function distribute_tokens(uint256 _investment, uint256 amount, IERC20 token) external {
+    function distribute_tokens(uint256 _investment, uint256 amount, IERC20 token) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Investment storage investment = investments[_investment];
-        require(investment.end_timestamp < block.timestamp, "The funding period is not over");
+        require(investment.funding_goal == investment.invested, "not funded yet");
         token.safeTransferFrom(msg.sender, address(this), amount);
         investment.payout_token_address = token;
         investment.payout_token_amount = amount;

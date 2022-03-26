@@ -207,9 +207,9 @@ describe("Treasury contract", function () {
       await treasury.connect(user1).collect_reward(0, user1.address);
   });
 
-  it('administrator cannot distribute tokens when funding period is not over', async () => {
-      await treasury.create_investment("Aventures DAO", ether_address, 4803803909, 4803890309, ethers.utils.parseEther("1000"));
-      await expect(treasury.distribute_tokens(0, 100000, testToken.address)).to.be.revertedWith("The funding period is not over");
+  it('administrator cannot distribute tokens when investment is not fully funded', async () => {
+      await treasury.create_investment("Aventures DAO", ether_address, 1648342880, 1648342881, ethers.utils.parseEther("1000"));
+      await expect(treasury.distribute_tokens(0, 100000, testToken.address)).to.be.revertedWith("not funded yet");
 
   });
 
